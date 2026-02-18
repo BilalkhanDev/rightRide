@@ -1,0 +1,69 @@
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+*.log.*
+
+# Dependency directory
+jspm_packages/
+
+# Build directories
+build/
+dist/
+.esbuild/
+
+# Next.js build output
+.next/
+
+# React build output
+build/
+
+# TypeScript build output
+*.tsbuildinfo
+
+# Vim, Emacs, IDE files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Yarn Integrity file
+.yarn-integrity
+
+# SASS and CSS files
+.sass-cache/
+
+# NPM package-lock file (optional, you can keep it if you want to version lock dependencies)
+package-lock.json
+
+# .eslintcache
+.eslintcache
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Jest & other testing tools
+jest-cache/
+jest-global-setup/
+
+# Webpack
+webpack-stats.json
+
+# Serverless Framework
+.serverless/
+
+# Other IDEs (IntelliJ IDEA, etc.)
+.idea/
+
+# macOS system files
+*.swp
+*.swo

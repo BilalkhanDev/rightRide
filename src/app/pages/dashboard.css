@@ -1,0 +1,21 @@
+/* Custom DatePicker Styles */
+.ant-picker-css-var {
+  --ant-date-picker-active-border-color: #136f63 !important; /* Primary active border color */
+  --ant-date-picker-hover-border-color: #136f63 !important; /* Hover border color */
+  --ant-date-picker-cell-active-with-range-bg: #136f631f; /* Background color for active cell within range */
+  --ant-date-picker-cell-hover-with-range-bg: #136f6326; /* Background color for hovered cell within range */
+  --ant-date-picker-cell-range-border-color: #136f63; /* Border color for cells within the selected range */
+}
+
+/* Override Ant Design DatePicker Popup Styling */
+.ant-picker-dropdown {
+  background-color: #ffffff; /* Popup background color */
+}
+
+.ant-picker-cell-selected {
+  background-color: var(--ant-date-picker-cell-active-with-range-bg) !important; /* Active selected cell background */
+}
+
+.ant-picker-cell-hover {
+  background-color: var(--ant-date-picker-cell-hover-with-range-bg) !important; /* Hovered cell background */
+}

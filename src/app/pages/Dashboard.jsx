@@ -1,49 +1,41 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import moment from "moment";
 import { Button, TextField, MenuItem, Select, InputLabel, FormControl } from "@mui/material";
 import DataTable from "../components/Table/DataTable";
 import { getAllTrips } from "../features/trips/trip.api";
-import { DatePicker} from 'antd';
+import { DatePicker } from 'antd';
 import './dashboard.css'
 import { tripColumns } from "../../types/clientTypes";
 import { formatDate, formatStatus, workflowStatus } from "../shared/utils/common.utils";
 import { debounce } from "lodash";
-const Dashboard=()=> {
+
+const Dashboard = () => {
   const { RangePicker } = DatePicker;
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(100);
   const [totalCount, setTotalCount] = useState(0);
-
-  const [filter, setFilter] = useState({
-    search:"",
-    statusFilter:""
-  });
-  const [dates, setDates] = useState({
-    startDate: "",
-    endDate: ""
-  })
-  const [dateRange, setDateRange] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const searchRef = useRef(null);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [dateRange, setDateRange] = useState(false);
 
   const handleRangeChange = (dates, dateStrings) => {
-    // dates will be null if the clear icon is used
     if (dates) {
       setDateRange(dates);
     } else {
-      setDateRange(null); // Or setDateRange([]);
+      setDateRange(null);
     }
   };
-
-  console.log(dateRange)
 
   const formatTrips = (trips) => {
     return trips?.length && trips?.map((trip) => {
       if (trip.transportDate) {
         trip.transportDate = formatDate(trip.transportDate);
       }
-      if(trip?.workflowText){
-        trip.workflowText=formatStatus(trip?.workflowText)
+      if (trip?.workflowText) {
+        trip.workflowText = formatStatus(trip?.workflowText);
       }
       return trip;
     });
@@ -53,22 +45,22 @@ const Dashboard=()=> {
     let queryParams = {
       page: page + 1,
       limit: rowsPerPage,
+    };
+    if (searchTerm  && searchTerm?.trim()?.length > 2) {
+      queryParams.search = searchTerm;
     }
-    if (filter?.search) {
-      queryParams.search = filter?.search
+    if (statusFilter) {
+      queryParams.workflowText = statusFilter;
     }
-    if (filter?.statusFilter) {
-      queryParams.workflowText = filter?.statusFilter
-    }
-    if(dateRange){
-      queryParams.startDate=dateRange[0]?.toISOString() || null
-      queryParams.endDate=dateRange[1]?.toISOString()  || null
+    if (dateRange) {
+      queryParams.startDate = dateRange[0]?.toISOString() || null;
+      queryParams.endDate = dateRange[1]?.toISOString() || null;
     }
 
     try {
       setLoading(true);
       const result = await getAllTrips(queryParams);
-      const formattedTrips = formatTrips(result?.data || [])
+      const formattedTrips = formatTrips(result?.data || []);
       setTrips(formattedTrips || []);
       setTotalCount(result?.totalResults);
       setLoading(false);
@@ -78,27 +70,25 @@ const Dashboard=()=> {
       setLoading(false);
     }
   };
-  
+
+  // Debounce the search input and reset when cleared
+  const handleSearch = (e) => {
+    searchRef.current = true;
+    const { value } = e.target;
+    setSearchTerm(value);
+  };
+
+  const debouncedFetchTrips = useCallback(
+    debounce(() => fetchTrips(), 500), 
+    [searchTerm, page, rowsPerPage, dateRange]
+  );
+
   useEffect(() => {
-    const delay = filter?.search && filter?.search?.trim()?.length > 2 ? 500 : 0;
+    if (searchTerm.trim().length === 0) {
+      debouncedFetchTrips();
+    }
+  }, [searchTerm, page, rowsPerPage, dateRange, debouncedFetchTrips]);
 
-    const timer = setTimeout(() => {
-      fetchTrips();
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [page, rowsPerPage, filter, dateRange]);
-
-
-  const handleFilter=(e)=>{
-    const {name, value}=e.target
-
-    setFilter((prev)=>({
-      ...prev,
-    [name]:value
-    }))
-  }
-  
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
@@ -108,19 +98,18 @@ const Dashboard=()=> {
     setPage(0);
   };
 
-  // Handle filter reset
   const handleResetFilters = () => {
-    setFilter({
-    search:"",
-    statusFilter:""
-    });
-    setDateRange(null)
+    setSearchTerm("");
+    setStatusFilter("");
+    setDateRange(null);
     setPage(0);
   };
-const isDisabled=!filter?.search && !filter?.statusFilter && !dateRange
+
+  const isDisabled = !searchTerm && !statusFilter && !dateRange;
+
   return (
     <div className="px-6">
-      <div className="flex  items-center gap-4 mb-2">
+      <div className="flex items-center gap-4 mb-2">
         {/* Search input */}
         <TextField
           label="Search"
@@ -128,52 +117,40 @@ const isDisabled=!filter?.search && !filter?.statusFilter && !dateRange
           type="search"
           size="small"
           name="search"
-          value={filter?.search}
-          onChange={handleFilter}
-          // className="mr-4"
+          value={searchTerm}
+          onChange={handleSearch}
         />
-        
+
         {/* Status filter dropdown */}
-        <FormControl variant="outlined" sx={{minWidth: 150}} size="small">
+        <FormControl variant="outlined" sx={{ minWidth: 150 }} size="small">
           <InputLabel>Status</InputLabel>
           <Select
             label="Status"
             name="statusFilter"
-            value={filter?.statusFilter}
-            onChange={handleFilter}
-        
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
             <MenuItem value="">All</MenuItem>
-            {workflowStatus?.map((option, index)=>{
-              return  <MenuItem key={index} value={option}>{option}</MenuItem>
-            })}
+            {workflowStatus?.map((option, index) => (
+              <MenuItem key={index} value={option}>{option}</MenuItem>
+            ))}
           </Select>
         </FormControl>
         <RangePicker
-          id={{
-            start: 'startInput',
-            end: 'endInput',
-          }}  
-          value={dateRange} 
- 
+          value={dateRange}
           allowClear={true}
-
           onChange={handleRangeChange}
-
         />
         {/* Reset Filters Button */}
         <Button
           variant="outlined"
-          style={{cursor:'pointer'}}
           onClick={handleResetFilters}
           color="primary"
           size="small"
-          disabled={isDisabled || false}
+          disabled={isDisabled}
         >
           Reset Filters
         </Button>
-    
-
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -190,5 +167,6 @@ const isDisabled=!filter?.search && !filter?.statusFilter && !dateRange
       </div>
     </div>
   );
-}
-export default Dashboard
+};
+
+export default Dashboard;

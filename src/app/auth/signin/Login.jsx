@@ -5,14 +5,17 @@ import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useEffect } from "react";
+import { Spin } from 'antd';
+
 
 const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated , loading} = useSelector((state) => state.auth);
 
   const handleLogin = async (values, { setSubmitting }) => {
+
     const data = {
       email: values.email,
       password: values.password,
@@ -93,7 +96,17 @@ const Login = () => {
                 type="submit"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Signing In..." : "Sign In"}
+                {loading ?
+                  <Spin
+                
+                    styles={{
+                      section: {
+                        color: '#ffff'
+                      }
+                    }}
+                  />
+
+                  : "Sign In"}
               </button>
             </div>
           </Form>

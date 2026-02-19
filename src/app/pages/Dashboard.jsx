@@ -1,12 +1,13 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import moment from "moment";
 import { Button, TextField, MenuItem, Select, InputLabel, FormControl } from "@mui/material";
 import DataTable from "../components/Table/DataTable";
 import { getAllTrips } from "../features/trips/trip.api";
 import { DatePicker} from 'antd';
 import './dashboard.css'
-import { tripColumns, providerTypes } from "../../types/clientTypes";
+import { tripColumns } from "../../types/clientTypes";
 import { formatDate, formatStatus, workflowStatus } from "../shared/utils/common.utils";
-
+import { debounce } from "lodash";
 const Dashboard=()=> {
   const { RangePicker } = DatePicker;
   const [trips, setTrips] = useState([]);
@@ -19,6 +20,22 @@ const Dashboard=()=> {
     search:"",
     statusFilter:""
   });
+  const [dates, setDates] = useState({
+    startDate: "",
+    endDate: ""
+  })
+  const [dateRange, setDateRange] = useState(null);
+
+  const handleRangeChange = (dates, dateStrings) => {
+    // dates will be null if the clear icon is used
+    if (dates) {
+      setDateRange(dates);
+    } else {
+      setDateRange(null); // Or setDateRange([]);
+    }
+  };
+
+  console.log(dateRange)
 
   const formatTrips = (trips) => {
     return trips?.length && trips?.map((trip) => {
@@ -33,7 +50,6 @@ const Dashboard=()=> {
   };
 
   const fetchTrips = async () => {
-    console.log("filter", filter)
     let queryParams = {
       page: page + 1,
       limit: rowsPerPage,
@@ -44,21 +60,25 @@ const Dashboard=()=> {
     if (filter?.statusFilter) {
       queryParams.workflowText = filter?.statusFilter
     }
+    if(dateRange){
+      queryParams.startDate=dateRange[0]?.toISOString() || null
+      queryParams.endDate=dateRange[1]?.toISOString()  || null
+    }
 
     try {
-
       setLoading(true);
       const result = await getAllTrips(queryParams);
       const formattedTrips = formatTrips(result?.data || [])
       setTrips(formattedTrips || []);
       setTotalCount(result?.totalResults);
+      setLoading(false);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
-
+  
   useEffect(() => {
     const delay = filter?.search && filter?.search?.trim()?.length > 2 ? 500 : 0;
 
@@ -67,7 +87,7 @@ const Dashboard=()=> {
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [page, rowsPerPage, filter]);
+  }, [page, rowsPerPage, filter, dateRange]);
 
 
   const handleFilter=(e)=>{
@@ -78,13 +98,13 @@ const Dashboard=()=> {
     [name]:value
     }))
   }
-
+  
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 100));
+    setRowsPerPage(parseInt(event.target.value));
     setPage(0);
   };
 
@@ -94,9 +114,10 @@ const Dashboard=()=> {
     search:"",
     statusFilter:""
     });
+    setDateRange(null)
     setPage(0);
   };
-
+const isDisabled=!filter?.search && !filter?.statusFilter && !dateRange
   return (
     <div className="px-6">
       <div className="flex  items-center gap-4 mb-2">
@@ -128,7 +149,18 @@ const Dashboard=()=> {
             })}
           </Select>
         </FormControl>
-         <RangePicker />
+        <RangePicker
+          id={{
+            start: 'startInput',
+            end: 'endInput',
+          }}  
+          value={dateRange} 
+ 
+          allowClear={true}
+
+          onChange={handleRangeChange}
+
+        />
         {/* Reset Filters Button */}
         <Button
           variant="outlined"
@@ -136,6 +168,7 @@ const Dashboard=()=> {
           onClick={handleResetFilters}
           color="primary"
           size="small"
+          disabled={isDisabled || false}
         >
           Reset Filters
         </Button>
